@@ -8,7 +8,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 #   * get_weights
 #   They must take at least the parameters below, exactly as specified. The output of
 #   get_weights must be in the same format as the example provided.
-
+thres = 0.001
 from sklearn.linear_model import Perceptron
 
 class PerceptronClassifier(BaseEstimator,ClassifierMixin):
@@ -37,6 +37,7 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
 
         """
         self.row, self.col = X.shape
+        self.init_input = X
         self.weights = self.initialize_weights() if not initial_weights else initial_weights
         a, b = self.weights.shape
         if a == 1:
@@ -45,13 +46,19 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
         X = np.concatenate((X,aug),axis=1)
 
         if self.epoch == -1:
+            self.num_epoch = 0
+            preAccuracy = 0
             while True:
                 if self.shuffle is True:
                     X, y = self._shuffle_data(X, y)
-                change = self.iterate(X,y)
-                if change is False:
+                accuracy = self.iterate(X,y)
+                self.num_epoch += 1
+                if abs(accuracy - preAccuracy) < thres:
                     break
+                preAccuracy = accuracy
+
         else:
+            self.num_epoch = self.epoch
             for i in range(self.epoch):
                 if self.shuffle is True:
                     X, y = self._shuffle_data(X, y)
@@ -59,7 +66,6 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
         return self
 
     def iterate(self, X, y):
-        change = False
         for i in range(self.row):
             net = np.dot(X[i,:],self.weights)
             output = 0
@@ -68,8 +74,8 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
             if output != y[i]:
                 dw = self.lr*(y[i, 0] - output)*X[i, :]
                 self.weights = self.weights + np.reshape(dw,(self.col + 1,1))
-                change = True
-        return change
+        accuracy = self.score(self.init_input, y)
+        return accuracy
 
     def predict(self, X):
         """ Predict all classes for a dataset X
@@ -136,3 +142,4 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
     ### Not required by sk-learn but required by us for grading. Returns the weights.
     def get_weights(self):
         return self.weights
+
