@@ -37,13 +37,18 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
 
         """
         self.row, self.col = X.shape
-        self.init_input = X
-        self.weights = self.initialize_weights() if not initial_weights else initial_weights
-        a, b = self.weights.shape
-        if a == 1:
-            self.weights = np.transpose(self.weights)
+        if initial_weights is None:
+            self.weights = self.initialize_weights()
+        else:
+            self.weights = initial_weights
+        # self.weights = self.initialize_weights() if not initial_weights else initial_weights
+        # a, b = self.weights.shape
+        # if a == 1:
+        #     self.weights = np.transpose(self.weights)
         aug = np.ones((self.row, 1))
         X = np.concatenate((X,aug),axis=1)
+        self.weights = self.weights.reshape(-1,1)
+        self.epoch_error = []
 
         if self.epoch == -1:
             self.num_epoch = 0
@@ -52,17 +57,18 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
                 if self.shuffle is True:
                     X, y = self._shuffle_data(X, y)
                 accuracy = self.iterate(X,y)
+                self.epoch_error.append(1 - accuracy)
                 self.num_epoch += 1
                 if abs(accuracy - preAccuracy) < thres:
                     break
                 preAccuracy = accuracy
-
         else:
             self.num_epoch = self.epoch
             for i in range(self.epoch):
                 if self.shuffle is True:
                     X, y = self._shuffle_data(X, y)
                 self.iterate(X,y)
+
         return self
 
     def iterate(self, X, y):
@@ -74,7 +80,8 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
             if output != y[i]:
                 dw = self.lr*(y[i, 0] - output)*X[i, :]
                 self.weights = self.weights + np.reshape(dw,(self.col + 1,1))
-        accuracy = self.score(self.init_input, y)
+        X = np.delete(X, np.s_[-1:], axis=1)
+        accuracy = self.score(X, y)
         return accuracy
 
     def predict(self, X):
@@ -88,7 +95,7 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
                 Predicted target values per element in X.
         """
         row,col = X.shape
-        aug = np.ones((self.row, 1))
+        aug = np.ones((row, 1))
         X = np.concatenate((X,aug),axis=1)
         result = np.zeros(row)
         for i in range(row):
@@ -97,8 +104,18 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
                 result[i] = 1
             else:
                 result[i] = 0
-        result = np.reshape(result, (self.row, 1))
+        result = np.reshape(result, (-1, 1))
         return result, result.shape
+
+    def predict_net(self, X):           # used for more multiple perceptron to get net values
+        row, col = X.shape
+        aug = np.ones((row, 1))
+        X = np.concatenate((X, aug), axis=1)
+        nets = np.zeros(row)
+        for i in range(row):
+            nets[i] = np.dot(X[i, :], self.weights)
+        nets = np.reshape(nets, (-1, 1))
+        return nets
 
     def initialize_weights(self):
         """ Initialize weights for perceptron. Don't forget the bias!
@@ -106,8 +123,8 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
         Returns:
 
         """
-        # weight = np.random.rand(self.col + 1, 1)
-        weight = np.zeros((self.col + 1,1))
+        weight = np.random.rand(self.col + 1, 1)
+        # weight = np.zeros((self.col + 1,1))
         return weight
 
     def score(self, X, y):
@@ -142,4 +159,3 @@ class PerceptronClassifier(BaseEstimator,ClassifierMixin):
     ### Not required by sk-learn but required by us for grading. Returns the weights.
     def get_weights(self):
         return self.weights
-

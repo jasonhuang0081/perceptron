@@ -61,13 +61,15 @@ def graph(x, y, labels=None, title="Untitled Graph", xlabel="X", ylabel="Y", poi
 
     for l in np.unique(labels.astype(int)):
         idx = np.where(labels==l)
-        plot_list.append(ax.plot(x[idx],y[idx], point_style, label = str(l))[0])
+
+        plot_list.append(ax.plot(x[idx],
+                                 y[idx], point_style, label = str(l))[0])
 
     # Put legend below
     if legend:
         ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=False, ncol=5, handles=plot_list,
                       facecolor = 'white', edgecolor = 'black')
-    plt.show()
+    # plt.show()
 
     if save_path:
         fig.savefig(save_path)
